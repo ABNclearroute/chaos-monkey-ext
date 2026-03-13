@@ -177,8 +177,6 @@
         sendResponse({ success: false, error: 'Logger not ready' });
       }
     }
-
-    return true;
   });
 })();
 

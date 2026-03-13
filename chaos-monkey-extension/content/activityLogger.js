@@ -325,8 +325,6 @@
         logs[lastErrorIndex].screenshot = message.dataUrl;
       }
     }
-
-    return true;
   });
 })();
 
