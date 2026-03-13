@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ChaosMonkey Tester</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <h1>ChaosMonkey Tester</h1>
+
+    <section class="config">
+      <h2>Configuration</h2>
+
+      <div class="field">
+        <label for="gremlinCount">Gremlin Count</label>
+        <input type="number" id="gremlinCount" min="1" value="50">
+      </div>
+
+      <div class="field">
+        <label for="duration">Duration (seconds)</label>
+        <input type="number" id="duration" min="1" value="30">
+      </div>
+
+      <div class="field">
+        <label for="speed">Attack Speed (ms between actions)</label>
+        <input type="number" id="speed" min="10" value="100">
+      </div>
+
+      <div class="field checkbox-group">
+        <span>Gremlin Types</span>
+        <label><input type="checkbox" id="clicker" checked> Clicker</label>
+        <label><input type="checkbox" id="toucher" checked> Toucher</label>
+        <label><input type="checkbox" id="formFiller" checked> Form Filler</label>
+        <label><input type="checkbox" id="scroller" checked> Scroller</label>
+        <label><input type="checkbox" id="typer" checked> Typer</label>
+      </div>
+    </section>
+
+    <section class="controls">
+      <button id="startBtn" class="primary">Start Chaos</button>
+      <button id="stopBtn" class="secondary">Stop Chaos</button>
+    </section>
+
+    <section class="export">
+      <h2>Export Logs</h2>
+      <div class="export-buttons">
+        <button id="exportJsonBtn">Export JSON</button>
+        <button id="exportCsvBtn">Export CSV</button>
+      </div>
+    </section>
+
+    <section class="stats">
+      <h2>Live Stats</h2>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <span class="label">Total</span>
+          <span id="totalActions" class="value">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="label">Clicks</span>
+          <span id="clicks" class="value">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="label">Inputs</span>
+          <span id="inputs" class="value">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="label">Scrolls</span>
+          <span id="scrolls" class="value">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="label">DOM Changes</span>
+          <span id="domChanges" class="value">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="label">Errors</span>
+          <span id="errors" class="value">0</span>
+        </div>
+      </div>
+      <div id="status" class="status">Idle</div>
+    </section>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
+
