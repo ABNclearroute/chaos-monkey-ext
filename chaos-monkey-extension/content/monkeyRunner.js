@@ -36,64 +36,35 @@
       return null;
     }
 
-    const horde = window.gremlins.createHorde();
-
-    const smartClicker = window.gremlins.species.clicker()
-      .clickTypes(['click'])
-      .canClick(function (element) {
-        if (!element || typeof element.matches !== 'function') return false;
-        const interactiveSelector = [
-          'a[href]',
-          'button',
-          'input',
-          'select',
-          'textarea',
-          '[role="button"]',
-          '[onclick]',
-          '[data-action]',
-          '[contenteditable="true"]'
-        ].join(',');
-        return element.matches(interactiveSelector);
-      });
+    const species = [];
 
     if (config.types.clicker) {
-      horde.gremlin(smartClicker);
+      species.push(
+        window.gremlins.species.clicker({
+          clickTypes: ['click']
+        })()
+      );
     }
     if (config.types.toucher && window.gremlins.species.toucher) {
-      horde.gremlin(window.gremlins.species.toucher());
+      species.push(window.gremlins.species.toucher()());
     }
     if (config.types.formFiller) {
-      horde.gremlin(window.gremlins.species.formFiller());
+      species.push(window.gremlins.species.formFiller()());
     }
     if (config.types.scroller) {
-      horde.gremlin(window.gremlins.species.scroller());
+      species.push(window.gremlins.species.scroller()());
     }
     if (config.types.typer) {
-      horde.gremlin(window.gremlins.species.typer());
+      species.push(window.gremlins.species.typer()());
     }
 
-    horde.strategy(
-      window.gremlins.strategies.distribution()
-        .delay(config.speedMs)
-        .distribution({ clicker: 0.4, formFiller: 0.2, scroller: 0.2, typer: 0.2 })
-    );
-
-    horde.before(() => {
-      ChaosMonkeyRunner.running = true;
-      if (window.ChaosMonkeyLogger && window.ChaosMonkeyLogger.onStart) {
-        window.ChaosMonkeyLogger.onStart();
-      }
-    });
-
-    horde.after(() => {
-      ChaosMonkeyRunner.running = false;
-      ChaosMonkeyRunner.snapshotAfter = takeDomSnapshot();
-      if (window.ChaosMonkeyLogger && window.ChaosMonkeyLogger.onStop) {
-        window.ChaosMonkeyLogger.onStop({
-          domBefore: ChaosMonkeyRunner.snapshotBefore,
-          domAfter: ChaosMonkeyRunner.snapshotAfter
-        });
-      }
+    const horde = window.gremlins.createHorde({
+      species,
+      strategies: [
+        window.gremlins.strategies.distribution({
+          delay: config.speedMs
+        })
+      ]
     });
 
     return horde;
@@ -106,12 +77,22 @@
     ChaosMonkeyRunner.config = config;
     ChaosMonkeyRunner.snapshotBefore = takeDomSnapshot();
 
+    if (!window.gremlins) {
+      console.error('[ChaosMonkey] window.gremlins is missing');
+      return;
+    }
+
     const horde = buildHorde(config);
     if (!horde) {
       return;
     }
 
     ChaosMonkeyRunner.horde = horde;
+    ChaosMonkeyRunner.running = true;
+    if (window.ChaosMonkeyLogger && window.ChaosMonkeyLogger.onStart) {
+      window.ChaosMonkeyLogger.onStart();
+    }
+    console.log('[ChaosMonkey] Horde starting');
 
     horde.seed(Date.now());
     horde.unleash({ nb: config.gremlinCount });
@@ -145,6 +126,7 @@
         domAfter: ChaosMonkeyRunner.snapshotAfter
       });
     }
+    console.log('[ChaosMonkey] Horde stopped');
   }
 
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
