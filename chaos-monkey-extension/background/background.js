@@ -8,6 +8,13 @@ async function getActiveTab() {
 }
 
 async function ensureContentScriptsInjected(tabId) {
+  // Load gremlins library into the same isolated world first
+  await chrome.scripting.executeScript({
+    target: { tabId },
+    files: ['libs/gremlins.min.js']
+  });
+
+  // Then our logger and runner, which expect window.gremlins to exist
   await chrome.scripting.executeScript({
     target: { tabId },
     files: ['content/activityLogger.js']

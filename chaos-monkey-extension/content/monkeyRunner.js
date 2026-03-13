@@ -18,37 +18,8 @@
 
   window.ChaosMonkeyRunner = ChaosMonkeyRunner;
 
-  function injectGremlinsScript(onLoad) {
-    if (ChaosMonkeyRunner.gremlinsLoaded && window.gremlins) {
-      onLoad();
-      return;
-    }
-
-    const existing = document.querySelector('script[data-chaos-monkey-gremlins]');
-    if (existing) {
-      existing.addEventListener('load', () => {
-        ChaosMonkeyRunner.gremlinsLoaded = true;
-        onLoad();
-      });
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = chrome.runtime.getURL('libs/gremlins.min.js');
-    script.async = true;
-    script.dataset.chaosMonkeyGremlins = 'true';
-
-    script.addEventListener('load', () => {
-      ChaosMonkeyRunner.gremlinsLoaded = true;
-      onLoad();
-    });
-
-    script.addEventListener('error', () => {
-      console.error('Failed to load gremlins.min.js');
-    });
-
-    (document.head || document.documentElement).appendChild(script);
-  }
+  // In MV3 we inject gremlins.min.js via chrome.scripting from the background,
+  // so by the time this content script runs, window.gremlins should already exist.
 
   function takeDomSnapshot() {
     try {
@@ -135,23 +106,23 @@
     ChaosMonkeyRunner.config = config;
     ChaosMonkeyRunner.snapshotBefore = takeDomSnapshot();
 
-    injectGremlinsScript(() => {
-      const horde = buildHorde(config);
-      if (!horde) return;
+    const horde = buildHorde(config);
+    if (!horde) {
+      return;
+    }
 
-      ChaosMonkeyRunner.horde = horde;
+    ChaosMonkeyRunner.horde = horde;
 
-      horde.seed(Date.now());
-      horde.unleash({ nb: config.gremlinCount });
+    horde.seed(Date.now());
+    horde.unleash({ nb: config.gremlinCount });
 
-      const durationMs = config.durationSeconds * 1000;
-      if (ChaosMonkeyRunner.stopTimeoutId) {
-        clearTimeout(ChaosMonkeyRunner.stopTimeoutId);
-      }
-      ChaosMonkeyRunner.stopTimeoutId = setTimeout(() => {
-        stopChaos();
-      }, durationMs);
-    });
+    const durationMs = config.durationSeconds * 1000;
+    if (ChaosMonkeyRunner.stopTimeoutId) {
+      clearTimeout(ChaosMonkeyRunner.stopTimeoutId);
+    }
+    ChaosMonkeyRunner.stopTimeoutId = setTimeout(() => {
+      stopChaos();
+    }, durationMs);
   }
 
   function stopChaos() {
