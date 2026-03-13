@@ -1,9 +1,9 @@
 // popup.js
 
 const DEFAULT_CONFIG = {
-  gremlinCount: 50,
   durationSeconds: 30,
-  speedMs: 100,
+  gremlinCount: 200,
+  speedMs: 50,
   types: {
     clicker: true,
     toucher: true,
@@ -21,28 +21,15 @@ function $(id) {
 
 function collectConfigFromUI() {
   return {
-    gremlinCount: parseInt(elements.gremlinCount.value, 10) || DEFAULT_CONFIG.gremlinCount,
     durationSeconds: parseInt(elements.duration.value, 10) || DEFAULT_CONFIG.durationSeconds,
-    speedMs: parseInt(elements.speed.value, 10) || DEFAULT_CONFIG.speedMs,
-    types: {
-      clicker: elements.clicker.checked,
-      toucher: elements.toucher.checked,
-      formFiller: elements.formFiller.checked,
-      scroller: elements.scroller.checked,
-      typer: elements.typer.checked
-    }
+    gremlinCount: DEFAULT_CONFIG.gremlinCount,
+    speedMs: DEFAULT_CONFIG.speedMs,
+    types: { ...DEFAULT_CONFIG.types }
   };
 }
 
 function applyConfigToUI(config) {
-  elements.gremlinCount.value = config.gremlinCount;
   elements.duration.value = config.durationSeconds;
-  elements.speed.value = config.speedMs;
-  elements.clicker.checked = !!config.types.clicker;
-  elements.toucher.checked = !!config.types.toucher;
-  elements.formFiller.checked = !!config.types.formFiller;
-  elements.scroller.checked = !!config.types.scroller;
-  elements.typer.checked = !!config.types.typer;
 }
 
 function setStatus(text) {
@@ -151,25 +138,65 @@ async function requestStats() {
   }
 }
 
+let lastRunning = false;
+
+async function autoExportLogs() {
+  const response = await sendMessageToBackground({
+    type: 'EXPORT_LOGS',
+    format: 'json'
+  });
+
+  if (!response || !response.success) {
+    setStatus('Failed to auto-export logs');
+    return;
+  }
+
+  const { data, filename, mimeType } = response;
+  downloadFile(filename, mimeType, data);
+  setStatus(`Logs auto-exported as ${filename}`);
+}
+
+async function pollStatsAndLogs() {
+  const response = await sendMessageToBackground({ type: 'GET_STATS' });
+  if (response && response.success && response.stats) {
+    updateStats(response.stats);
+    const running = !!response.running;
+    if (running) {
+      setStatus('Chaos running...');
+      elements.startBtn.disabled = true;
+    } else {
+      elements.startBtn.disabled = false;
+    }
+
+    if (lastRunning && !running) {
+      await autoExportLogs();
+    }
+    lastRunning = running;
+  }
+
+  const logsResponse = await sendMessageToBackground({
+    type: 'GET_RECENT_LOGS',
+    limit: 40
+  });
+  if (logsResponse && logsResponse.success && Array.isArray(logsResponse.logs)) {
+    const lines = logsResponse.logs.map((l) => {
+      const time = l.timestamp ? l.timestamp.split('T')[1].replace('Z', '') : '';
+      return `[${time}] ${l.action || ''} ${l.selector || ''} ${l.message || l.detail || ''}`.trim();
+    });
+    elements.logTail.textContent = lines.join('\n');
+  }
+}
+
 function setupPeriodicStats() {
-  requestStats();
-  setInterval(requestStats, 1000);
+  pollStatsAndLogs();
+  setInterval(pollStatsAndLogs, 1000);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  elements.gremlinCount = $('gremlinCount');
   elements.duration = $('duration');
-  elements.speed = $('speed');
-  elements.clicker = $('clicker');
-  elements.toucher = $('toucher');
-  elements.formFiller = $('formFiller');
-  elements.scroller = $('scroller');
-  elements.typer = $('typer');
-
   elements.startBtn = $('startBtn');
   elements.stopBtn = $('stopBtn');
   elements.exportJsonBtn = $('exportJsonBtn');
-  elements.exportCsvBtn = $('exportCsvBtn');
 
   elements.totalActions = $('totalActions');
   elements.clicks = $('clicks');
@@ -178,6 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
   elements.domChanges = $('domChanges');
   elements.errors = $('errors');
   elements.status = $('status');
+  elements.logTail = $('logTail');
 
   loadConfig();
   setupPeriodicStats();
@@ -185,7 +213,6 @@ document.addEventListener('DOMContentLoaded', () => {
   elements.startBtn.addEventListener('click', startChaos);
   elements.stopBtn.addEventListener('click', stopChaos);
   elements.exportJsonBtn.addEventListener('click', () => exportLogs('json'));
-  elements.exportCsvBtn.addEventListener('click', () => exportLogs('csv'));
 });
 
 chrome.runtime.onMessage.addListener((message) => {

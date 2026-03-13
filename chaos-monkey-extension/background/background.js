@@ -96,6 +96,30 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
     }
 
+    if (message.type === 'GET_RECENT_LOGS') {
+      const tab = await getActiveTab();
+      if (!tab || !tab.id) {
+        sendResponse({ success: true, logs: [] });
+        return;
+      }
+
+      try {
+        const response = await chrome.tabs.sendMessage(tab.id, {
+          type: 'GET_RECENT_LOGS',
+          limit: message.limit
+        }).catch(() => null);
+
+        if (response && response.success) {
+          sendResponse({ success: true, logs: response.logs || [] });
+        } else {
+          sendResponse({ success: true, logs: [] });
+        }
+      } catch (err) {
+        console.error('GET_RECENT_LOGS error:', err);
+        sendResponse({ success: false, error: String(err) });
+      }
+    }
+
     if (message.type === 'EXPORT_LOGS') {
       const tab = await getActiveTab();
       if (!tab || !tab.id) {

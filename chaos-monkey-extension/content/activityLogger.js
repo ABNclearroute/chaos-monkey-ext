@@ -144,15 +144,30 @@
     });
   }
 
-  function onWindowError(message, source, lineno, colno, error) {
+  function onWindowError(eventOrMsg, source, lineno, colno, error) {
     stats.errors += 1;
+    let msg, src, ln, cn, err;
+    if (eventOrMsg && typeof eventOrMsg === 'object' && 'message' in eventOrMsg) {
+      const ev = eventOrMsg;
+      msg = ev.message;
+      src = ev.filename;
+      ln = ev.lineno;
+      cn = ev.colno;
+      err = ev.error;
+    } else {
+      msg = eventOrMsg;
+      src = source;
+      ln = lineno;
+      cn = colno;
+      err = error;
+    }
     const errorLog = {
       action: 'error',
-      message: String(message),
-      source: String(source),
-      lineno,
-      colno,
-      stack: error && error.stack ? String(error.stack).slice(0, 2000) : null,
+      message: msg != null ? String(msg).slice(0, 2000) : 'unknown',
+      source: src != null ? String(src).slice(0, 500) : '',
+      lineno: ln,
+      colno: cn,
+      stack: err && err.stack ? String(err.stack).slice(0, 2000) : null,
       screenshot: null
     };
     pushLog(errorLog);
@@ -231,61 +246,6 @@
     };
   }
 
-  function exportAsCsv() {
-    const headers = [
-      'timestamp',
-      'action',
-      'selector',
-      'x',
-      'y',
-      'value',
-      'scrollTop',
-      'scrollLeft',
-      'detail',
-      'message',
-      'source',
-      'lineno',
-      'colno'
-    ];
-
-    const lines = [];
-    lines.push(headers.join(','));
-
-    function csvEscape(value) {
-      if (value === null || value === undefined) return '';
-      const str = String(value).replace(/"/g, '""');
-      if (/[",\n]/.test(str)) {
-        return `"${str}"`;
-      }
-      return str;
-    }
-
-    logs.forEach((log) => {
-      const row = [
-        log.timestamp,
-        log.action,
-        log.selector,
-        log.x,
-        log.y,
-        log.value || log.text || '',
-        log.scrollTop,
-        log.scrollLeft,
-        log.detail,
-        log.message,
-        log.source,
-        log.lineno,
-        log.colno
-      ].map(csvEscape);
-      lines.push(row.join(','));
-    });
-
-    return {
-      filename: `chaosmonkey-logs-${Date.now()}.csv`,
-      mimeType: 'text/csv',
-      data: lines.join('\n')
-    };
-  }
-
   const ChaosMonkeyLogger = {
     onStart() {
       domSnapshots.before = null;
@@ -300,8 +260,11 @@
     getStats() {
       return { ...stats };
     },
-    exportLogs(format) {
-      if (format === 'csv') return exportAsCsv();
+    getRecentLogs(limit = 100) {
+      if (!limit || limit <= 0) return [];
+      return logs.slice(-limit);
+    },
+    exportLogs() {
       return exportAsJson();
     }
   };
@@ -313,6 +276,11 @@
 
     if (message.type === 'GET_STATS') {
       sendResponse({ success: true, stats: ChaosMonkeyLogger.getStats() });
+    }
+
+    if (message.type === 'GET_RECENT_LOGS') {
+      const limit = typeof message.limit === 'number' ? message.limit : 100;
+      sendResponse({ success: true, logs: ChaosMonkeyLogger.getRecentLogs(limit) });
     }
 
     if (message.type === 'EXPORT_LOGS') {

@@ -35,7 +35,8 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "libs/gremlins.min.js"
+        "libs/gremlins.min.js",
+        "content/pageGremlinsBootstrap.js"
       ],
       "matches": ["<all_urls>"]
     }

@@ -13,27 +13,8 @@
       <h2>Configuration</h2>
 
       <div class="field">
-        <label for="gremlinCount">Gremlin Count</label>
-        <input type="number" id="gremlinCount" min="1" value="50">
-      </div>
-
-      <div class="field">
         <label for="duration">Duration (seconds)</label>
         <input type="number" id="duration" min="1" value="30">
-      </div>
-
-      <div class="field">
-        <label for="speed">Attack Speed (ms between actions)</label>
-        <input type="number" id="speed" min="10" value="100">
-      </div>
-
-      <div class="field checkbox-group">
-        <span>Gremlin Types</span>
-        <label><input type="checkbox" id="clicker" checked> Clicker</label>
-        <label><input type="checkbox" id="toucher" checked> Toucher</label>
-        <label><input type="checkbox" id="formFiller" checked> Form Filler</label>
-        <label><input type="checkbox" id="scroller" checked> Scroller</label>
-        <label><input type="checkbox" id="typer" checked> Typer</label>
       </div>
     </section>
 
@@ -46,7 +27,6 @@
       <h2>Export Logs</h2>
       <div class="export-buttons">
         <button id="exportJsonBtn">Export JSON</button>
-        <button id="exportCsvBtn">Export CSV</button>
       </div>
     </section>
 
@@ -79,6 +59,11 @@
         </div>
       </div>
       <div id="status" class="status">Idle</div>
+    </section>
+
+    <section class="logs">
+      <h2>Recent Activity</h2>
+      <pre id="logTail" class="log-tail"></pre>
     </section>
   </div>
 
