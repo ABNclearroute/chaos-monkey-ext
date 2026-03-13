@@ -140,22 +140,6 @@ async function requestStats() {
 
 let lastRunning = false;
 
-async function autoExportLogs() {
-  const response = await sendMessageToBackground({
-    type: 'EXPORT_LOGS',
-    format: 'json'
-  });
-
-  if (!response || !response.success) {
-    setStatus('Failed to auto-export logs');
-    return;
-  }
-
-  const { data, filename, mimeType } = response;
-  downloadFile(filename, mimeType, data);
-  setStatus(`Logs auto-exported as ${filename}`);
-}
-
 async function pollStatsAndLogs() {
   const response = await sendMessageToBackground({ type: 'GET_STATS' });
   if (response && response.success && response.stats) {
@@ -169,7 +153,7 @@ async function pollStatsAndLogs() {
     }
 
     if (lastRunning && !running) {
-      await autoExportLogs();
+      setStatus('Run complete — JSON download started');
     }
     lastRunning = running;
   }

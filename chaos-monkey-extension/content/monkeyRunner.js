@@ -56,10 +56,10 @@
     if (ChaosMonkeyRunner.stopTimeoutId) {
       clearTimeout(ChaosMonkeyRunner.stopTimeoutId);
     }
-    ChaosMonkeyRunner.stopTimeoutId = setTimeout(stopChaos, durationMs);
+    ChaosMonkeyRunner.stopTimeoutId = setTimeout(() => stopChaos(true), durationMs);
   }
 
-  function stopChaos() {
+  function stopChaos(durationComplete) {
     if (!ChaosMonkeyRunner.running) return;
 
     try {
@@ -89,6 +89,9 @@
         domBefore: ChaosMonkeyRunner.snapshotBefore,
         domAfter: ChaosMonkeyRunner.snapshotAfter
       });
+    }
+    if (durationComplete) {
+      chrome.runtime.sendMessage({ type: 'RUN_COMPLETED' });
     }
   }
 

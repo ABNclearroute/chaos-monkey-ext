@@ -82,10 +82,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }).catch(() => null);
 
         if (response && response.success) {
+          const running = !!response.running;
+          tabState[tab.id] = { running }; // sync with content script (handles duration-complete)
           sendResponse({
             success: true,
             stats: response.stats || {},
-            running: !!(tabState[tab.id] && tabState[tab.id].running)
+            running
           });
         } else {
           sendResponse({ success: true, stats: {}, running: false });
@@ -147,6 +149,30 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       } catch (err) {
         console.error('EXPORT_LOGS error:', err);
         sendResponse({ success: false, error: String(err) });
+      }
+    }
+
+    if (message.type === 'RUN_COMPLETED') {
+      const tabId = sender.tab && sender.tab.id;
+      if (!tabId) return;
+
+      try {
+        const response = await chrome.tabs.sendMessage(tabId, {
+          type: 'EXPORT_LOGS',
+          format: 'json'
+        }).catch(() => null);
+
+        if (!response || !response.success) return;
+
+        const { data, filename, mimeType } = response;
+        const url = 'data:' + mimeType + ';base64,' + btoa(unescape(encodeURIComponent(data)));
+        await chrome.downloads.download({
+          url,
+          filename,
+          saveAs: false
+        });
+      } catch (err) {
+        console.error('Auto-export on run complete:', err);
       }
     }
 
